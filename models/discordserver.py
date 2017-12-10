@@ -10,7 +10,7 @@ def define_discordserver(db):
         state = orm.Required(int, min=1, max=3)  # 1 = waiting for approval, 2 = public, 3 = expired
         invite_code = orm.Required(str, unique=True)
         server_id = orm.Required(int, unique=True, size=64)
-        server_name = orm.Required(str, max_len=32)
+        name = orm.Required(str, max_len=32)
         description = orm.Optional(str, max_len=100)
         invitee_id = orm.Required(int, size=64)
         submitted_at = orm.Required(datetime.datetime)

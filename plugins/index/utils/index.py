@@ -9,7 +9,7 @@ def add_discord_server_to_queue(db, invite_code, server_id, server_name, server_
     db.DiscordServer(state=1,
                      invite_code=invite_code,
                      server_id=server_id,
-                     server_name=server_name,
+                     name=server_name,
                      description=server_description,
                      invitee_id=invitee_id,
                      submitted_at=datetime.datetime.now(),
@@ -27,6 +27,19 @@ def remove_discord_server(discord_server):
     discord_server.delete()
     orm.commit()
 
-    # TODO: queue lgic
+    # TODO: queue logic
+    # TODO: index logic
+    # TODO: logging logic
+
+
+@orm.db_session
+def update_discord_server(discord_server, attr=None):
+    if attr is None:
+        attr = {}
+
+    discord_server.set(**attr)
+    orm.commit()
+
+    # TODO: queue logic
     # TODO: index logic
     # TODO: logging logic

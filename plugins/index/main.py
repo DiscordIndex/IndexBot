@@ -3,7 +3,7 @@ from disco.types.channel import Channel as DiscoChannel
 from pony import orm
 
 from db import DbHandler
-from plugins.index.utils.index import add_discord_server_to_queue, remove_discord_server
+from plugins.index.utils.index import add_discord_server_to_queue, remove_discord_server, update_discord_server
 from plugins.index.utils.invite import extract_invite_code, is_valid_invite
 from .config import IndexPluginConfig
 
@@ -103,22 +103,66 @@ class IndexPlugin(Plugin):
 
         event.msg.reply('Removed!')
 
-    @Plugin.command('update', '<invite:str> [category:channel|snowflake] [name_and_description:str...]')  # TODO: level
-    def command_update(self, event, invite, category=None, name_and_description=""):
+    @orm.db_session
+    @Plugin.command('update',
+                    '<invite:str> [category_channel:channel|snowflake] [name_and_description:str...]',
+                    aliases=[])  # TODO: level
+    def command_update(self, event, invite, category_channel=None, name_and_description=""):
         if event.msg.channel.id not in self.config.addChannelIDs:
-            event.msg.reply('invalid channel')
             return
 
-        if category is not None:
-            if not isinstance(category, DiscoChannel):
-                category = self.state.channels.get(category)
+        self.client.api.channels_typing(event.msg.channel.id)
 
         name = name_and_description.strip()
         description = ""
-        if "|" in name_and_description:
-            parts = name_and_description.split('|', 2)
+        if "|" in name:
+            parts = name.split('|', 2)
             name = parts[0].strip()
             description = parts[1].strip()
 
-        event.msg.reply('Update\nInvite: {invite}\nCategory: <#{category}>\nName: {name}\nDescription: {description}'.
-                        format(invite=invite, category=category.id, name=name, description=description))
+        if len(name) > 32:
+            event.msg.reply('name too long')
+            return
+
+        if len(description) > 100:
+            event.msg.reply('description too long')
+            return
+
+        invite_code = extract_invite_code(invite)
+        if len(invite_code) <= 0:
+            event.msg.reply('no invite code found')
+            return
+
+        invite = self.client.api.invites_get(invite_code)
+
+        if not is_valid_invite(self.client, invite, event.msg.author.id):
+            event.msg.reply('invalid invite code')
+            return
+
+        discord_servers_found = orm.select(ds for ds in self.db.DiscordServer if ds.server_id == invite.guild.id)
+        if discord_servers_found.count() <= 0:
+            event.msg.reply('server not found in queue or index')
+            return
+
+        if category_channel is not None and not isinstance(category_channel, DiscoChannel):
+            category_channel = self.state.channels.get(category_channel)
+
+        if category_channel is not None and category_channel.guild_id != event.msg.channel.guild_id:
+            event.msg.reply('invalid category channel')
+            return
+
+        # TODO: add exception for staff
+        if discord_servers_found.first().invitee_id != event.msg.author.id:
+            event.msg.reply('you can only edit entries your submitted yourself')
+            return
+
+        attr = {'invite_code': invite.code}
+        if len(name) > 0:
+            attr['name'] = name
+            attr['description'] = description
+        if category_channel is not None and len(category_channel.name) > 0:
+            attr['category_channel_name'] = category_channel.name
+
+        update_discord_server(discord_servers_found.first(), attr)
+
+        event.msg.reply('Updated!')
