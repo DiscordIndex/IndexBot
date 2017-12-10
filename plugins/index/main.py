@@ -3,8 +3,8 @@ from disco.types.channel import Channel as DiscoChannel
 from pony import orm
 
 from db import DbHandler
+from plugins.index.utils.index import add_discord_server_to_queue, remove_discord_server
 from plugins.index.utils.invite import extract_invite_code, is_valid_invite
-from plugins.index.utils.queue import add_to_queue
 from .config import IndexPluginConfig
 
 
@@ -69,10 +69,39 @@ class IndexPlugin(Plugin):
             event.msg.reply('invalid category channel')
             return
 
-        add_to_queue(self.db, invite_code, invite.guild.id, name, description, event.msg.author.id,
-                     category_channel.name)
+        add_discord_server_to_queue(self.db, invite_code, invite.guild.id, name, description, event.msg.author.id,
+                                    category_channel.name)
 
         event.msg.reply('Added to queue!')
+
+    @orm.db_session
+    @Plugin.command('remove',
+                    '<invite:str>',
+                    aliases=['delete', 'withdraw'])  # TODO: level
+    def command_remove(self, event, invite):
+        if event.msg.channel.id not in self.config.addChannelIDs:
+            return
+
+        self.client.api.channels_typing(event.msg.channel.id)
+
+        invite_code = extract_invite_code(invite)
+        if len(invite_code) <= 0:
+            event.msg.reply('no invite code found')
+            return
+
+        discord_servers_found = orm.select(ds for ds in self.db.DiscordServer if ds.invite_code == invite_code)
+        if discord_servers_found.count() <= 0:
+            event.msg.reply('invite not found in queue or index')
+            return
+
+        # TODO: add exception for staff
+        if discord_servers_found.first().invitee_id != event.msg.author.id:
+            event.msg.reply('you can only remove entries your submitted yourself')
+            return
+
+        remove_discord_server(discord_servers_found.first())
+
+        event.msg.reply('Removed!')
 
     @Plugin.command('update', '<invite:str> [category:channel|snowflake] [name_and_description:str...]')  # TODO: level
     def command_update(self, event, invite, category=None, name_and_description=""):

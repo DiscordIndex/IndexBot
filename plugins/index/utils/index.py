@@ -3,7 +3,9 @@ import datetime
 from pony import orm
 
 
-def add_to_queue(db, invite_code, server_id, server_name, server_description, invitee_id, category_channel_name):
+@orm.db_session
+def add_discord_server_to_queue(db, invite_code, server_id, server_name, server_description, invitee_id,
+                                category_channel_name):
     db.DiscordServer(state=1,
                      invite_code=invite_code,
                      server_id=server_id,
@@ -17,3 +19,14 @@ def add_to_queue(db, invite_code, server_id, server_name, server_description, in
     orm.commit()
 
     # TODO: queue logic
+    # TODO: logging logic
+
+
+@orm.db_session
+def remove_discord_server(discord_server):
+    discord_server.delete()
+    orm.commit()
+
+    # TODO: queue lgic
+    # TODO: index logic
+    # TODO: logging logic

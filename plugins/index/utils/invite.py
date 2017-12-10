@@ -20,7 +20,7 @@ def extract_invite_code(invite_link):
 
 
 def is_valid_invite(client, invite, submitterID):
-    # TODO: add exception for Admins
+    # TODO: add exception for staff
 
     if invite.inviter.id != submitterID:
         return False
