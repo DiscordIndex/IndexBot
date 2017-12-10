@@ -8,4 +8,4 @@
 - edit `config.yaml` and `config/index.json`
 
 ## Run
-`python -m disco.cli --config config.yaml`
+`python3.6 launcher.py`

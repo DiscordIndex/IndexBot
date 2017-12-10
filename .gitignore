@@ -100,3 +100,6 @@ venv.bak/
 config.yaml
 config/*.json
 !config/*.dist.json
+
+# IndexBot
+database.sqlite
