@@ -1,0 +1,5 @@
+token: 'yourBotToken'
+
+bot:
+  plugins:
+        - plugins.index.main
