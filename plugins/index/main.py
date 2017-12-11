@@ -5,6 +5,7 @@ from pony import orm
 from db import DbHandler
 from plugins.index.utils.index import add_discord_server_to_queue, remove_discord_server, update_discord_server
 from plugins.index.utils.invite import extract_invite_code, is_valid_invite
+from plugins.index.utils.queue import update_approval_queue
 from .config import IndexPluginConfig
 
 
@@ -20,6 +21,11 @@ class IndexPlugin(Plugin):
     @Plugin.command('channels')  # TODO: level
     def command_ping(self, event):
         event.msg.reply('Add Channels: <#' + ">, <#".join(str(x) for x in self.config.addChannelIDs) + '>')
+
+    @Plugin.command('refresh queue')  # TODO: level
+    def command_ping(self, event):
+        update_approval_queue(self)
+        event.msg.reply('Refreshed queue')
 
     @orm.db_session
     @Plugin.command('add',
@@ -73,7 +79,7 @@ class IndexPlugin(Plugin):
         if category_channel.parent is not None:
             genre_category_name = category_channel.parent.name
 
-        add_discord_server_to_queue(self.db, invite_code, invite.guild.id, name, description, event.msg.author.id,
+        add_discord_server_to_queue(self, invite_code, invite.guild.id, name, description, event.msg.author.id,
                                     category_channel.name, genre_category_name)
 
         event.msg.reply('Added to queue!')
@@ -103,7 +109,7 @@ class IndexPlugin(Plugin):
             event.msg.reply('you can only remove entries your submitted yourself')
             return
 
-        remove_discord_server(discord_servers_found.first())
+        remove_discord_server(self, discord_servers_found.first())
 
         event.msg.reply('Removed!')
 
@@ -172,6 +178,6 @@ class IndexPlugin(Plugin):
             attr['category_channel_name'] = category_channel.name
             attr['genre_category_name'] = genre_category_name
 
-        update_discord_server(discord_servers_found.first(), attr)
+        update_discord_server(self, discord_servers_found.first(), attr)
 
         event.msg.reply('Updated!')
