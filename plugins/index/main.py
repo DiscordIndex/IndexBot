@@ -69,8 +69,12 @@ class IndexPlugin(Plugin):
             event.msg.reply('invalid category channel')
             return
 
+        genre_category_name = ""
+        if category_channel.parent is not None:
+            genre_category_name = category_channel.parent.name
+
         add_discord_server_to_queue(self.db, invite_code, invite.guild.id, name, description, event.msg.author.id,
-                                    category_channel.name)
+                                    category_channel.name, genre_category_name)
 
         event.msg.reply('Added to queue!')
 
@@ -151,6 +155,10 @@ class IndexPlugin(Plugin):
             event.msg.reply('invalid category channel')
             return
 
+        genre_category_name = ""
+        if category_channel is not None and category_channel.parent is not None:
+            genre_category_name = category_channel.parent.name
+
         # TODO: add exception for staff
         if discord_servers_found.first().invitee_id != event.msg.author.id:
             event.msg.reply('you can only edit entries your submitted yourself')
@@ -162,6 +170,7 @@ class IndexPlugin(Plugin):
             attr['description'] = description
         if category_channel is not None and len(category_channel.name) > 0:
             attr['category_channel_name'] = category_channel.name
+            attr['genre_category_name'] = genre_category_name
 
         update_discord_server(discord_servers_found.first(), attr)
 
