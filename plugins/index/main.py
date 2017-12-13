@@ -8,7 +8,7 @@ from plugins.index.utils.index import add_discord_server_to_queue, remove_discor
 from plugins.index.utils.invite import extract_invite_code, is_valid_invite
 from plugins.index.utils.query_response_manager import QueryResponseManager
 from plugins.index.utils.queue import update_approval_queue, DENY_EMOJI, get_queue_bot_message, get_entry_from_embed, \
-    reject_current_queue_entry
+    reject_queue_entry, APPROVE_EMOJI, approve_queue_entry
 from .config import IndexPluginConfig
 
 
@@ -17,12 +17,17 @@ def is_queue_reject_reaction(event):
         return True
 
 
+def is_queue_approve_reaction(event):
+    if event.emoji.name == APPROVE_EMOJI:
+        return True
+
+
 def handle_queue_reject_reason(event):
     print(event)
 
 
 def deny_reason_callback(plugin=None, user_id=0, text="", more_args=None):
-    reject_current_queue_entry(plugin, more_args['entry'], user_id, text)
+    reject_queue_entry(plugin, more_args['entry'], user_id, text)
 
 
 @Plugin.with_config(IndexPluginConfig)
@@ -74,7 +79,11 @@ class IndexPlugin(Plugin):
             event.msg.reply('no invite code found')
             return
 
-        invite = self.client.api.invites_get(invite_code)
+        try:
+            invite = self.client.api.invites_get(invite_code)
+        except APIException:
+            event.msg.reply('expired invite code')
+            return
 
         if orm.select(
                 orm.count(ds) for ds in self.db.DiscordServer if ds.server_id == invite.guild.id).first() > 0:
@@ -199,9 +208,8 @@ class IndexPlugin(Plugin):
 
         event.msg.reply('Updated!')
 
-    @orm.db_session
     @Plugin.listen('MessageReactionAdd', conditional=is_queue_reject_reaction)
-    def on_message_reaction_add(self, event):
+    def on_queue_reject_reaction(self, event):
         if event.channel_id != self.config.approvalQueueChannelID:
             return
 
@@ -229,6 +237,37 @@ class IndexPlugin(Plugin):
 
         self.denyReasonQueryResponseManager.start_query(self, user.id, event.channel_id, deny_query_text,
                                                         more_args={'entry': entry})
+
+        try:
+            self.client.api.channels_messages_reactions_delete(event.channel_id, event.message_id, event.emoji.name,
+                                                               event.user_id)
+        except APIException:
+            pass
+
+    @Plugin.listen('MessageReactionAdd', conditional=is_queue_approve_reaction)
+    def on_queue_approval_reaction(self, event):
+        if event.channel_id != self.config.approvalQueueChannelID:
+            return
+
+        if event.user_id not in self.config.modUserIDs:
+            return
+
+        bot_queue_message = get_queue_bot_message(self)
+
+        if not bot_queue_message:
+            return
+
+        entry = get_entry_from_embed(self, bot_queue_message.embeds[0])
+
+        if not entry:
+            return
+
+        user = self.client.state.users[event.user_id]
+
+        if not user:
+            return
+
+        approve_queue_entry(self, entry, event.user_id)
 
         try:
             self.client.api.channels_messages_reactions_delete(event.channel_id, event.message_id, event.emoji.name,
