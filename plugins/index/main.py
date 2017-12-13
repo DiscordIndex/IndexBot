@@ -135,7 +135,7 @@ class IndexPlugin(Plugin):
             event.msg.reply('you can only remove entries your submitted yourself')
             return
 
-        remove_discord_server(self, discord_servers_found.first())
+        remove_discord_server(self, discord_servers_found.first(), event.msg.author.id)
 
         event.msg.reply('Removed!')
 
@@ -169,7 +169,11 @@ class IndexPlugin(Plugin):
             event.msg.reply('no invite code found')
             return
 
-        invite = self.client.api.invites_get(invite_code)
+        try:
+            invite = self.client.api.invites_get(invite_code)
+        except APIException:
+            event.msg.reply('expired invite code')
+            return
 
         if not is_valid_invite(self.client, invite, event.msg.author.id):
             event.msg.reply('invalid invite code')

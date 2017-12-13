@@ -4,6 +4,8 @@ from disco.api.http import APIException
 from disco.types.message import MessageEmbed
 from pony import orm
 
+from plugins.index.utils.changelog import changelog_post_approval, changelog_post_rejection
+
 APPROVE_EMOJI = "✅"
 DENY_EMOJI = "❌"
 
@@ -29,14 +31,15 @@ def get_queue_embed_item(entry, count):
     description = entry.description
     if not description:
         description = "_None_"
-    category_breadcrumbs = entry.category_channel_name
+    category_breadcrumbs = "#" + entry.category_channel_name
     if entry.genre_category_name:
-        category_breadcrumbs = entry.genre_category_name + " / " + category_breadcrumbs
+        category_breadcrumbs = "#" + entry.genre_category_name + " / " + category_breadcrumbs
 
     embed = MessageEmbed()
     embed.title = "Items in queue: {numberOfItems}".format(numberOfItems=count)
     embed.add_field(name='Name', value=entry.name, inline=True)
     embed.add_field(name='Description', value=description, inline=True)
+    embed.add_field(name='Category', value=category_breadcrumbs, inline=True)
     embed.add_field(name='Invite', value="discord.gg/{entry.invite_code}".format(entry=entry), inline=True)
     embed.add_field(name='Server ID', value="`#{entry.server_id}`".format(entry=entry), inline=True)
     embed.add_field(name='Invitee', value="<@{entry.invitee_id}>\n`#{entry.invitee_id}`".format(entry=entry),
@@ -148,6 +151,8 @@ def reject_queue_entry(plugin, entry, user_id, reason):
     plugin.db.DiscordServer[entry.id].delete()
     update_approval_queue(plugin)
 
+    changelog_post_rejection(plugin, entry, user_id, reason)
+
 
 @orm.db_session
 def approve_queue_entry(plugin, entry, user_id):
@@ -168,3 +173,5 @@ def approve_queue_entry(plugin, entry, user_id):
     plugin.db.DiscordServer[entry.id].state = 2
     # TODO: update index messages
     update_approval_queue(plugin)
+
+    changelog_post_approval(plugin, entry, user_id)
