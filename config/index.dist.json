@@ -1,4 +1,5 @@
 {
   "addChannelIDs": [],
-  "approvalQueueChannelID": 0
+  "approvalQueueChannelID": 0,
+  "modUserIDs": []
 }

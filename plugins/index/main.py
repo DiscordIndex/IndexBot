@@ -1,3 +1,4 @@
+from disco.api.http import APIException
 from disco.bot import Plugin
 from disco.types.channel import Channel as DiscoChannel
 from pony import orm
@@ -5,8 +6,23 @@ from pony import orm
 from db import DbHandler
 from plugins.index.utils.index import add_discord_server_to_queue, remove_discord_server, update_discord_server
 from plugins.index.utils.invite import extract_invite_code, is_valid_invite
-from plugins.index.utils.queue import update_approval_queue
+from plugins.index.utils.query_response_manager import QueryResponseManager
+from plugins.index.utils.queue import update_approval_queue, DENY_EMOJI, get_queue_bot_message, get_entry_from_embed, \
+    reject_current_queue_entry
 from .config import IndexPluginConfig
+
+
+def is_queue_reject_reaction(event):
+    if event.emoji.name == DENY_EMOJI:
+        return True
+
+
+def handle_queue_reject_reason(event):
+    print(event)
+
+
+def deny_reason_callback(plugin=None, user_id=0, text="", more_args=None):
+    reject_current_queue_entry(plugin, more_args['entry'], user_id, text)
 
 
 @Plugin.with_config(IndexPluginConfig)
@@ -14,6 +30,7 @@ class IndexPlugin(Plugin):
     def __init__(self, bot, config):
         super().__init__(bot, config)
         self.db = DbHandler().getDb()
+        self.denyReasonQueryResponseManager = QueryResponseManager(deny_reason_callback)
 
     def load(self, ctx):
         super(IndexPlugin, self).load(ctx)
@@ -181,3 +198,50 @@ class IndexPlugin(Plugin):
         update_discord_server(self, discord_servers_found.first(), attr)
 
         event.msg.reply('Updated!')
+
+    @orm.db_session
+    @Plugin.listen('MessageReactionAdd', conditional=is_queue_reject_reaction)
+    def on_message_reaction_add(self, event):
+        if event.channel_id != self.config.approvalQueueChannelID:
+            return
+
+        if event.user_id not in self.config.modUserIDs:
+            return
+
+        bot_queue_message = get_queue_bot_message(self)
+
+        if not bot_queue_message:
+            return
+
+        entry = get_entry_from_embed(self, bot_queue_message.embeds[0])
+
+        if not entry:
+            return
+
+        user = self.client.state.users[event.user_id]
+
+        if not user:
+            return
+
+        deny_query_text = "<@{user.id}>\nPlease tell me the reason for rejecting {entry.name}.\nUse `cancel` to cancel rejecting the server.".format(
+            user=user,
+            entry=entry)
+
+        self.denyReasonQueryResponseManager.start_query(self, user.id, event.channel_id, deny_query_text,
+                                                        more_args={'entry': entry})
+
+        try:
+            self.client.api.channels_messages_reactions_delete(event.channel_id, event.message_id, event.emoji.name,
+                                                               event.user_id)
+        except APIException:
+            pass
+
+    @Plugin.listen('MessageCreate')
+    def on_message_create(self, event):
+        if event.message.channel.id != self.config.approvalQueueChannelID:
+            return
+
+        if event.message.author.id not in self.config.modUserIDs:
+            return
+
+        self.denyReasonQueryResponseManager.handle_possible_response(self, event.message)

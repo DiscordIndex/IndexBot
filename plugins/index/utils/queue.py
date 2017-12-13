@@ -54,14 +54,12 @@ def get_entry_from_embed(plugin, embed):
     if not embed.footer.text.startswith("ID: "):
         return None
 
-    entryId = uuid.UUID(embed.footer.text.replace("ID: ", "", 1).strip())
+    entry_id = uuid.UUID(embed.footer.text.replace("ID: ", "", 1).strip())
 
-    discord_servers_found = orm.select(ds for ds in plugin.db.DiscordServer if ds.id == entryId)
-
-    if discord_servers_found.count() <= 0:
+    try:
+        return plugin.db.DiscordServer[entry_id]
+    except orm.ObjectNotFound:
         return None
-
-    return discord_servers_found.first()
 
 
 @orm.db_session
@@ -125,3 +123,22 @@ def update_approval_queue(plugin):
                 plugin.client.api.channels_messages_reactions_create(edited_message.channel.id, edited_message.id,
                                                                      DENY_EMOJI)
     return
+
+
+@orm.db_session
+def reject_current_queue_entry(plugin, entry, user_id, reason):
+    # TODO: add emojis?
+    message = '**We are sorry to tell you we had to deny your server submission.**\n'
+    message += 'The Server `{entry.name}` (invite: discord.gg/{entry.invite_code}) has been denied.\n'.format(
+        entry=entry)
+    message += 'Reason: `{reason}`. Responsible moderator: <@{user_id}>.\n'.format(reason=reason, user_id=user_id)
+    message += 'Feel free to resubmit your server if you have fixed the issue.\n'
+    message += 'Please contact the moderator mentioned above in case of questions.'
+
+    dm_channel = plugin.client.api.users_me_dms_create(entry.invitee_id)
+    dm_channel.send_message(message)
+
+    # TODO: logging logic.
+
+    plugin.db.DiscordServer[entry.id].delete()
+    update_approval_queue(plugin)
