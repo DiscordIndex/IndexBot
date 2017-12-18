@@ -1,10 +1,10 @@
 import uuid
 
-from disco.api.http import APIException
 from disco.types.message import MessageEmbed
 from pony import orm
 
 from plugins.index.utils.changelog import changelog_post_approval, changelog_post_rejection
+from plugins.index.utils.dms import send_approval_message, send_rejection_message
 
 APPROVE_EMOJI = "✅"
 DENY_EMOJI = "❌"
@@ -131,47 +131,19 @@ def update_approval_queue(plugin):
 
 
 @orm.db_session
-def reject_queue_entry(plugin, entry, user_id, reason):
-    # TODO: add emojis?
-    message = '**We are sorry to tell you we had to deny your server submission.**\n'
-    message += 'The Server `{entry.name}` (invite: discord.gg/{entry.invite_code}) has been denied.\n'.format(
-        entry=entry)
-    message += 'Reason: `{reason}`. Responsible moderator: <@{user_id}>.\n'.format(reason=reason, user_id=user_id)
-    message += 'Feel free to resubmit your server if you have fixed the issue.\n'
-    message += 'Please contact the moderator mentioned above in case of questions.'
-
-    try:
-        dm_channel = plugin.client.api.users_me_dms_create(entry.invitee_id)
-        dm_channel.send_message(message)
-    except APIException:
-        pass
-
-    # TODO: logging logic.
-
+def reject_queue_entry(plugin, entry, moderator_user_id, reason):
     plugin.db.DiscordServer[entry.id].delete()
     update_approval_queue(plugin)
 
-    changelog_post_rejection(plugin, entry, user_id, reason)
+    send_rejection_message(plugin, entry, moderator_user_id, reason)
+    changelog_post_rejection(plugin, entry, moderator_user_id, reason)
 
 
 @orm.db_session
 def approve_queue_entry(plugin, entry, user_id):
-    # TODO: add emojis?
-    message = '**Congratulations! Your submission has been added.**\n'
-    message += 'You can now find `{entry.name}` (invite: discord.gg/{entry.invite_code}) in the server index.\n'.format(
-        entry=entry)
-    message += 'Thank you very much for submitting your server.'
-
-    try:
-        dm_channel = plugin.client.api.users_me_dms_create(entry.invitee_id)
-        dm_channel.send_message(message)
-    except APIException:
-        pass
-
-    # TODO: logging logic.
-
     plugin.db.DiscordServer[entry.id].state = 2
     # TODO: update index messages
     update_approval_queue(plugin)
 
+    send_approval_message(plugin, entry)
     changelog_post_approval(plugin, entry, user_id)

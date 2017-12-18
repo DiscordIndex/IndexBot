@@ -19,10 +19,14 @@ def extract_invite_code(invite_link):
     return parts[0][3]
 
 
-def is_valid_invite(client, invite, submitterID):
+def is_valid_invite(client, invite, submitter_id, discord_server_entry=None):
     # TODO: add exception for staff
 
-    if invite.inviter.id != submitterID:
+    if invite.inviter.id != submitter_id:
         return False
+
+    if discord_server_entry:
+        if invite.guild.id != discord_server_entry.server_id:
+            return False
 
     return True

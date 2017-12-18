@@ -9,6 +9,7 @@ from plugins.index.utils.invite import extract_invite_code, is_valid_invite
 from plugins.index.utils.query_response_manager import QueryResponseManager
 from plugins.index.utils.queue import update_approval_queue, DENY_EMOJI, get_queue_bot_message, get_entry_from_embed, \
     reject_queue_entry, APPROVE_EMOJI, approve_queue_entry
+from plugins.index.utils.servers_healthcheck import start_servers_healthcheck, start_servers_healthcheck_loop
 from .config import IndexPluginConfig
 
 
@@ -36,18 +37,27 @@ class IndexPlugin(Plugin):
         super().__init__(bot, config)
         self.db = DbHandler().getDb()
         self.denyReasonQueryResponseManager = QueryResponseManager(deny_reason_callback)
+        start_servers_healthcheck_loop(self)
 
     def load(self, ctx):
         super(IndexPlugin, self).load(ctx)
 
     @Plugin.command('channels')  # TODO: level
     def command_ping(self, event):
+        self.client.api.channels_typing(event.msg.channel.id)
         event.msg.reply('Add Channels: <#' + ">, <#".join(str(x) for x in self.config.addChannelIDs) + '>')
 
     @Plugin.command('refresh queue')  # TODO: level
     def command_ping(self, event):
+        self.client.api.channels_typing(event.msg.channel.id)
         update_approval_queue(self)
         event.msg.reply('Refreshed queue')
+
+    @Plugin.command('healthcheck')  # TODO: level
+    def command_ping(self, event):
+        self.client.api.channels_typing(event.msg.channel.id)
+        start_servers_healthcheck(self)
+        event.msg.reply('Completed healthcheck')
 
     @orm.db_session
     @Plugin.command('add',

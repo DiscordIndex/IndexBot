@@ -127,3 +127,26 @@ def changelog_post_update(plugin, before_data, after_data):
 
     for channel_id in plugin.config.changelogChannelIDs:
         plugin.client.api.channels_messages_create(channel_id, embed=embed)
+
+
+def changelog_post_expiration(plugin, entry):
+    description = entry.description
+    if not description:
+        description = '_None_'
+
+    category_breadcrumbs = '#' + entry.category_channel_name
+    if entry.genre_category_name:
+        category_breadcrumbs = '#' + entry.genre_category_name + ' / ' + category_breadcrumbs
+
+    embed = MessageEmbed()
+    embed.title = '👋 Server Invite expired!'
+    embed.description = 'The invitee has been notified with information on how to update the invite link.'
+    embed.add_field(name='🏷 Name', value=entry.name, inline=True)
+    embed.add_field(name='📖 Description', value=description, inline=True)
+    embed.add_field(name='🗃 Category', value=category_breadcrumbs, inline=True)
+    embed.add_field(name='📆 Submitted At', value='{entry.submitted_at}'.format(entry=entry),
+                    inline=True)
+    embed.set_footer(text='ID: {entry.id}'.format(entry=entry))
+
+    for channel_id in plugin.config.changelogChannelIDs:
+        plugin.client.api.channels_messages_create(channel_id, embed=embed)
