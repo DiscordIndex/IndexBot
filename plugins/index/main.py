@@ -6,6 +6,7 @@ from pony import orm
 from db import DbHandler
 from plugins.index.utils.index import add_discord_server_to_queue, remove_discord_server, update_discord_server
 from plugins.index.utils.invite import extract_invite_code, is_valid_invite
+from plugins.index.utils.permissions import is_mod
 from plugins.index.utils.query_response_manager import QueryResponseManager
 from plugins.index.utils.queue import update_approval_queue, DENY_EMOJI, get_queue_bot_message, get_entry_from_embed, \
     reject_queue_entry, APPROVE_EMOJI, approve_queue_entry
@@ -42,19 +43,23 @@ class IndexPlugin(Plugin):
     def load(self, ctx):
         super(IndexPlugin, self).load(ctx)
 
-    @Plugin.command('channels')  # TODO: level
+    @Plugin.command('ping')
     def command_ping(self, event):
+        event.msg.reply('pong')
+
+    @Plugin.command('channels')
+    def command_channels(self, event):
         self.client.api.channels_typing(event.msg.channel.id)
         event.msg.reply('Add Channels: <#' + ">, <#".join(str(x) for x in self.config.addChannelIDs) + '>')
 
-    @Plugin.command('refresh queue')  # TODO: level
-    def command_ping(self, event):
+    @Plugin.command('refresh queue')
+    def command_refresh_queue(self, event):
         self.client.api.channels_typing(event.msg.channel.id)
         update_approval_queue(self)
         event.msg.reply('Refreshed queue')
 
-    @Plugin.command('healthcheck')  # TODO: level
-    def command_ping(self, event):
+    @Plugin.command('healthcheck')
+    def command_healthcheck(self, event):
         self.client.api.channels_typing(event.msg.channel.id)
         start_servers_healthcheck(self)
         event.msg.reply('Completed healthcheck')
@@ -62,7 +67,7 @@ class IndexPlugin(Plugin):
     @orm.db_session
     @Plugin.command('add',
                     '<invite:str> <category_channel:channel|snowflake> <name_and_description:str...>',
-                    aliases=['submit'])  # TODO: level
+                    aliases=['submit'])
     def command_add(self, event, invite, category_channel, name_and_description):
         if event.msg.channel.id not in self.config.addChannelIDs:
             return
@@ -123,7 +128,7 @@ class IndexPlugin(Plugin):
     @orm.db_session
     @Plugin.command('remove',
                     '<invite:str>',
-                    aliases=['delete', 'withdraw'])  # TODO: level
+                    aliases=['delete', 'withdraw'])
     def command_remove(self, event, invite):
         if event.msg.channel.id not in self.config.addChannelIDs:
             return
@@ -152,7 +157,7 @@ class IndexPlugin(Plugin):
     @orm.db_session
     @Plugin.command('update',
                     '<invite:str> [category_channel:channel|snowflake] [name_and_description:str...]',
-                    aliases=[])  # TODO: level
+                    aliases=[])
     def command_update(self, event, invite, category_channel=None, name_and_description=""):
         if event.msg.channel.id not in self.config.addChannelIDs:
             return
@@ -227,7 +232,7 @@ class IndexPlugin(Plugin):
         if event.channel_id != self.config.approvalQueueChannelID:
             return
 
-        if event.user_id not in self.config.modUserIDs:
+        if not is_mod(self, event.user_id):
             return
 
         bot_queue_message = get_queue_bot_message(self)
@@ -263,7 +268,7 @@ class IndexPlugin(Plugin):
         if event.channel_id != self.config.approvalQueueChannelID:
             return
 
-        if event.user_id not in self.config.modUserIDs:
+        if not is_mod(self, event.user_id):
             return
 
         bot_queue_message = get_queue_bot_message(self)
@@ -294,7 +299,7 @@ class IndexPlugin(Plugin):
         if event.message.channel.id != self.config.approvalQueueChannelID:
             return
 
-        if event.message.author.id not in self.config.modUserIDs:
+        if not is_mod(self, event.message.author.id):
             return
 
         self.denyReasonQueryResponseManager.handle_possible_response(self, event.message)

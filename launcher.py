@@ -1,3 +1,4 @@
+import atexit
 import copy
 import logging
 import os
@@ -44,10 +45,18 @@ class BotSupervisor(object):
             gevent.sleep(5)
 
 
+def exit_handler(logging, supervisor):
+    logging.info("shutting down…")
+    supervisor.stop()
+
+
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.DEBUG)
     import logging
 
     logging.info("booting Bot…")
     supervisor = BotSupervisor()
+
+    atexit.register(exit_handler, logging=logging, supervisor=supervisor)
+
     supervisor.proc.wait()
