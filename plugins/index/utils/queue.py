@@ -8,6 +8,7 @@ from plugins.index.utils.dms import send_approval_message, send_rejection_messag
 
 APPROVE_EMOJI = "✅"
 DENY_EMOJI = "❌"
+EDIT_EMOJI = "✏"
 
 
 def get_queue_bot_message(plugin):
@@ -93,6 +94,8 @@ def update_approval_queue(plugin):
             plugin.client.api.channels_messages_reactions_delete(edited_message.channel.id, edited_message.id,
                                                                  APPROVE_EMOJI)
             plugin.client.api.channels_messages_reactions_delete(edited_message.channel.id, edited_message.id,
+                                                                 EDIT_EMOJI)
+            plugin.client.api.channels_messages_reactions_delete(edited_message.channel.id, edited_message.id,
                                                                  DENY_EMOJI)
     # there are items in the queu
     else:
@@ -106,6 +109,7 @@ def update_approval_queue(plugin):
                                                                          discord_servers_found.count()))
             plugin.cached_queue_message = new_message
             plugin.client.api.channels_messages_reactions_create(new_message.channel.id, new_message.id, APPROVE_EMOJI)
+            plugin.client.api.channels_messages_reactions_create(new_message.channel.id, new_message.id, EDIT_EMOJI)
             plugin.client.api.channels_messages_reactions_create(new_message.channel.id, new_message.id, DENY_EMOJI)
         else:
             entry = get_entry_from_embed(plugin, bot_queue_message.embeds[0])
@@ -121,6 +125,7 @@ def update_approval_queue(plugin):
                 plugin.cached_queue_message = new_message
                 plugin.client.api.channels_messages_reactions_create(new_message.channel.id, new_message.id,
                                                                      APPROVE_EMOJI)
+                plugin.client.api.channels_messages_reactions_create(new_message.channel.id, new_message.id, EDIT_EMOJI)
                 plugin.client.api.channels_messages_reactions_create(new_message.channel.id, new_message.id, DENY_EMOJI)
             else:
                 # refresh embed if previous queue message was about an item in the queue (to update counter and stuff)
@@ -133,6 +138,8 @@ def update_approval_queue(plugin):
                 plugin.cached_queue_message = edited_message
                 plugin.client.api.channels_messages_reactions_create(edited_message.channel.id, edited_message.id,
                                                                      APPROVE_EMOJI)
+                plugin.client.api.channels_messages_reactions_create(edited_message.channel.id, edited_message.id,
+                                                                     EDIT_EMOJI)
                 plugin.client.api.channels_messages_reactions_create(edited_message.channel.id, edited_message.id,
                                                                      DENY_EMOJI)
     return

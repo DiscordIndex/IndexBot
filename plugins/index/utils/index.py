@@ -41,6 +41,8 @@ def update_discord_server(plugin, discord_server, attr=None):
     if attr is None:
         attr = {}
 
+    discord_server = plugin.db.DiscordServer[discord_server.id]
+
     if discord_server.state == 3:
         discord_server.state = 2
 
