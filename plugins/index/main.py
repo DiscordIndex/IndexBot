@@ -67,10 +67,16 @@ class IndexPlugin(Plugin):
     @orm.db_session
     @Plugin.command('add',
                     '<invite:str> <category_channel:channel|snowflake> <name_and_description:str...>',
-                    aliases=['submit'])
+                    aliases=['submit', 'sudo-add'])
     def command_add(self, event, invite, category_channel, name_and_description):
         if event.msg.channel.id not in self.config.addChannelIDs:
             return
+
+        sudo = False
+        if event.name == 'sudo-add':
+            if not is_mod(self, event.msg.author.id):
+                return
+            sudo = True
 
         self.client.api.channels_typing(event.msg.channel.id)
 
@@ -105,8 +111,8 @@ class IndexPlugin(Plugin):
             event.msg.reply('server already in the index or queue')
             return
 
-        if not is_valid_invite(self.client, invite, event.msg.author.id):
-            event.msg.reply('invalid invite code')
+        if not is_valid_invite(self.client, invite, event.msg.author.id, sudo=sudo):
+            event.msg.reply('you can only submit invites you generated yourself')
             return
 
         if not isinstance(category_channel, DiscoChannel):
@@ -120,7 +126,7 @@ class IndexPlugin(Plugin):
         if category_channel.parent is not None:
             genre_category_name = category_channel.parent.name
 
-        add_discord_server_to_queue(self, invite_code, invite.guild.id, name, description, event.msg.author.id,
+        add_discord_server_to_queue(self, invite_code, invite.guild.id, name, description, invite.inviter.id,
                                     category_channel.name, genre_category_name)
 
         event.msg.reply('Added to queue!')
@@ -128,10 +134,16 @@ class IndexPlugin(Plugin):
     @orm.db_session
     @Plugin.command('remove',
                     '<invite:str>',
-                    aliases=['delete', 'withdraw'])
+                    aliases=['delete', 'withdraw', 'sudo-remove'])
     def command_remove(self, event, invite):
         if event.msg.channel.id not in self.config.addChannelIDs:
             return
+
+        sudo = False
+        if event.name == 'sudo-remove':
+            if not is_mod(self, event.msg.author.id):
+                return
+            sudo = True
 
         self.client.api.channels_typing(event.msg.channel.id)
 
@@ -145,8 +157,7 @@ class IndexPlugin(Plugin):
             event.msg.reply('invite not found in queue or index')
             return
 
-        # TODO: add exception for staff
-        if discord_servers_found.first().invitee_id != event.msg.author.id:
+        if discord_servers_found.first().invitee_id != event.msg.author.id and sudo == False:
             event.msg.reply('you can only remove entries your submitted yourself')
             return
 
@@ -157,10 +168,16 @@ class IndexPlugin(Plugin):
     @orm.db_session
     @Plugin.command('update',
                     '<invite:str> [category_channel:channel|snowflake] [name_and_description:str...]',
-                    aliases=[])
+                    aliases=['sudo-update'])
     def command_update(self, event, invite, category_channel=None, name_and_description=""):
         if event.msg.channel.id not in self.config.addChannelIDs:
             return
+
+        sudo = False
+        if event.name == 'sudo-update':
+            if not is_mod(self, event.msg.author.id):
+                return
+            sudo = True
 
         self.client.api.channels_typing(event.msg.channel.id)
 
@@ -190,8 +207,8 @@ class IndexPlugin(Plugin):
             event.msg.reply('expired invite code')
             return
 
-        if not is_valid_invite(self.client, invite, event.msg.author.id):
-            event.msg.reply('invalid invite code')
+        if not is_valid_invite(self.client, invite, event.msg.author.id, sudo=sudo):
+            event.msg.reply('you can only submit invites you generated yourself')
             return
 
         discord_servers_found = orm.select(ds for ds in self.db.DiscordServer if ds.server_id == invite.guild.id)
@@ -210,8 +227,7 @@ class IndexPlugin(Plugin):
         if category_channel is not None and category_channel.parent is not None:
             genre_category_name = category_channel.parent.name
 
-        # TODO: add exception for staff
-        if discord_servers_found.first().invitee_id != event.msg.author.id:
+        if discord_servers_found.first().invitee_id != event.msg.author.id and sudo == False:
             event.msg.reply('you can only edit entries your submitted yourself')
             return
 
