@@ -85,7 +85,7 @@ def changelog_post_removal(plugin, entry_data, author_user_id, reason):
 
 def changelog_post_update(plugin, before_data, after_data):
     # don't post above withdrawals from the queue
-    if after_data['state'] == 1:
+    if after_data['state'] == 1 or after_data['state'] == 4:
         return
 
     name = after_data['name']

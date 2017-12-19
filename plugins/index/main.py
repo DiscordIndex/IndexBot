@@ -312,16 +312,21 @@ class IndexPlugin(Plugin):
             return
 
         attr = {'invite_code': invite.code}
+        response_text = 'Updated!'
         if len(name) > 0:
             attr['name'] = name
             attr['description'] = description
         if category_channel is not None and len(category_channel.name) > 0:
-            attr['category_channel_name'] = category_channel.name
-            attr['genre_category_name'] = genre_category_name
+            if category_channel.name != discord_servers_found.first().category_channel_name or genre_category_name != discord_servers_found.first().genre_category_name:
+                attr['category_channel_name'] = category_channel.name
+                attr['genre_category_name'] = genre_category_name
+                if not sudo:
+                    attr['state'] = 4
+                    response_text = 'Category changes have to be approved, we will inform you when it\'s done!'
 
         update_discord_server(self, discord_servers_found.first(), attr)
 
-        event.msg.reply('Updated!')
+        event.msg.reply(response_text)
 
     @Plugin.listen('MessageReactionAdd', conditional=is_queue_approve_reaction)
     def on_queue_approval_reaction(self, event):

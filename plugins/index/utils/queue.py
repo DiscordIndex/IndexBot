@@ -41,6 +41,8 @@ def get_queue_embed_item(entry, count):
 
     embed = MessageEmbed()
     embed.title = "Items in queue: {numberOfItems}".format(numberOfItems=count)
+    if entry.state == 4:
+        embed.description = '🔄 Category Change!'
     embed.add_field(name='Name', value=entry.name, inline=True)
     embed.add_field(name='Description', value=description, inline=True)
     embed.add_field(name='Category', value=category_breadcrumbs, inline=True)
@@ -73,7 +75,7 @@ def get_entry_from_embed(plugin, embed):
 
 @orm.db_session
 def update_approval_queue(plugin):
-    discord_servers_found = orm.select(ds for ds in plugin.db.DiscordServer if ds.state == 1)
+    discord_servers_found = orm.select(ds for ds in plugin.db.DiscordServer if ds.state == 1 or ds.state == 4)
 
     bot_queue_message = get_queue_bot_message(plugin)
 

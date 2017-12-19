@@ -7,7 +7,8 @@ from pony import orm
 def define_discordserver(db):
     class DiscordServer(db.Entity):
         id = orm.PrimaryKey(uuid.UUID, default=uuid.uuid4)
-        state = orm.Required(int, min=1, max=3)  # 1 = waiting for approval, 2 = public, 3 = expired
+        state = orm.Required(int, min=1,
+                             max=4)  # 1 = waiting for approval, 2 = public, 3 = expired, 4 = requeued (eg channel change)
         invite_code = orm.Required(str, unique=True)
         server_id = orm.Required(int, unique=True, size=64)
         name = orm.Required(str, max_len=32)
