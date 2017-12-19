@@ -39,6 +39,7 @@ class IndexPlugin(Plugin):
         self.db = DbHandler().getDb()
         self.denyReasonQueryResponseManager = QueryResponseManager(deny_reason_callback)
         start_servers_healthcheck_loop(self)
+        self.cached_queue_message = None
 
     def load(self, ctx):
         super(IndexPlugin, self).load(ctx)

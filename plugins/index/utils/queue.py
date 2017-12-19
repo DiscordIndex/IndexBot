@@ -11,10 +11,13 @@ DENY_EMOJI = "❌"
 
 
 def get_queue_bot_message(plugin):
-    # TODO: cache message
-    for message in plugin.client.api.channels_messages_list(plugin.config.approvalQueueChannelID):
-        if message.author.id == plugin.client.state.me.id and len(message.embeds) > 0:
-            return message
+    if plugin.cached_queue_message:
+        return plugin.cached_queue_message
+    else:
+        for message in plugin.client.api.channels_messages_list(plugin.config.approvalQueueChannelID):
+            if message.author.id == plugin.client.state.me.id and len(message.embeds) > 0:
+                plugin.cached_queue_message = message
+                return message
 
     return None
 
@@ -77,14 +80,16 @@ def update_approval_queue(plugin):
     if discord_servers_found.count() <= 0:
         # create message if there is no previous queue message
         if bot_queue_message is None:
-            plugin.client.api.channels_messages_create(plugin.config.approvalQueueChannelID,
-                                                       embed=get_queue_embed_none())
+            new_message = plugin.client.api.channels_messages_create(plugin.config.approvalQueueChannelID,
+                                                                     embed=get_queue_embed_none())
+            plugin.cached_queue_message = new_message
         # update message if there is a previous queue message
         else:
             edited_message = plugin.client.api.channels_messages_modify(plugin.config.approvalQueueChannelID,
                                                                         bot_queue_message.id,
                                                                         content="\u200B",
                                                                         embed=get_queue_embed_none())
+            plugin.cached_queue_message = edited_message
             plugin.client.api.channels_messages_reactions_delete(edited_message.channel.id, edited_message.id,
                                                                  APPROVE_EMOJI)
             plugin.client.api.channels_messages_reactions_delete(edited_message.channel.id, edited_message.id,
@@ -99,6 +104,7 @@ def update_approval_queue(plugin):
                                                                      embed=get_queue_embed_item(
                                                                          discord_servers_found.first(),
                                                                          discord_servers_found.count()))
+            plugin.cached_queue_message = new_message
             plugin.client.api.channels_messages_reactions_create(new_message.channel.id, new_message.id, APPROVE_EMOJI)
             plugin.client.api.channels_messages_reactions_create(new_message.channel.id, new_message.id, DENY_EMOJI)
         else:
@@ -112,6 +118,7 @@ def update_approval_queue(plugin):
                                                                          embed=get_queue_embed_item(
                                                                              discord_servers_found.first(),
                                                                              discord_servers_found.count()))
+                plugin.cached_queue_message = new_message
                 plugin.client.api.channels_messages_reactions_create(new_message.channel.id, new_message.id,
                                                                      APPROVE_EMOJI)
                 plugin.client.api.channels_messages_reactions_create(new_message.channel.id, new_message.id, DENY_EMOJI)
@@ -123,6 +130,7 @@ def update_approval_queue(plugin):
                                                                                 entry=entry),
                                                                             embed=get_queue_embed_item(entry,
                                                                                                        discord_servers_found.count()))
+                plugin.cached_queue_message = edited_message
                 plugin.client.api.channels_messages_reactions_create(edited_message.channel.id, edited_message.id,
                                                                      APPROVE_EMOJI)
                 plugin.client.api.channels_messages_reactions_create(edited_message.channel.id, edited_message.id,
