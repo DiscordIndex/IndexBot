@@ -24,10 +24,6 @@ def is_queue_approve_reaction(event):
         return True
 
 
-def handle_queue_reject_reason(event):
-    print(event)
-
-
 def deny_reason_callback(plugin=None, user_id=0, text="", more_args=None):
     reject_queue_entry(plugin, more_args['entry'], user_id, text)
 
