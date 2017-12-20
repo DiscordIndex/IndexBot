@@ -38,6 +38,16 @@ def is_queue_reject_reaction(event):
 
 def deny_reason_callback(plugin=None, user_id=0, text="", more_args=None):
     reject_queue_entry(plugin, more_args['entry'], user_id, text)
+    plugin.log.info(
+        '#{author_id} rejected '
+        'server: #{entry[server_id]} discord.gg/{entry[invite_code]} '
+        'name: {entry[name]} description: {entry[description]} '
+        'category: {entry[category_channel_name]} genre: {entry[genre_category_name]} '
+        'invitee: #{entry[invitee_id]} '
+        'submitted at: {entry[submitted_at]} last checked: {entry[submitted_at]} '
+        'reason: {reason}'.format(
+            author_id=user_id,
+            entry=more_args['entry'].to_dict(), reason=text))
 
 
 def query_edit_callback(plugin=None, user_id=0, text="", more_args=None):
@@ -59,6 +69,16 @@ def query_edit_callback(plugin=None, user_id=0, text="", more_args=None):
             sent_message = plugin.client.api.channels_messages_create(plugin.config.approvalQueueChannelID,
                                                                       '<@{user_id}> done, changed name!'.format(
                                                                           user_id=user_id))
+            plugin.log.info(
+                '#{author_id} edited '
+                'server: #{entry[server_id]} discord.gg/{entry[invite_code]} '
+                'name: {entry[name]} description: {entry[description]} '
+                'category: {entry[category_channel_name]} genre: {entry[genre_category_name]} '
+                'invitee: #{entry[invitee_id]} '
+                'submitted at: {entry[submitted_at]} last checked: {entry[submitted_at]} '
+                'new name: {new_value}'.format(
+                    author_id=user_id,
+                    entry=more_args['entry'].to_dict(), new_value=new_value_text))
     elif text.lower().startswith('description'):
         new_value_text = text[11:].strip()
         if len(new_value_text) > 100:
@@ -70,6 +90,16 @@ def query_edit_callback(plugin=None, user_id=0, text="", more_args=None):
             sent_message = plugin.client.api.channels_messages_create(plugin.config.approvalQueueChannelID,
                                                                       '<@{user_id}> done, changed description!'.format(
                                                                           user_id=user_id))
+            plugin.log.info(
+                '#{author_id} edited '
+                'server: #{entry[server_id]} discord.gg/{entry[invite_code]} '
+                'name: {entry[name]} description: {entry[description]} '
+                'category: {entry[category_channel_name]} genre: {entry[genre_category_name]} '
+                'invitee: #{entry[invitee_id]} '
+                'submitted at: {entry[submitted_at]} last checked: {entry[submitted_at]} '
+                'new description: {new_value}'.format(
+                    author_id=user_id,
+                    entry=more_args['entry'].to_dict(), new_value=new_value_text))
     elif text.lower().startswith('category'):
         new_value_text = text[8:].strip()
         if new_value_text.lower().startswith('<#') and new_value_text.lower().endswith('>'):
@@ -93,6 +123,17 @@ def query_edit_callback(plugin=None, user_id=0, text="", more_args=None):
             sent_message = plugin.client.api.channels_messages_create(plugin.config.approvalQueueChannelID,
                                                                       '<@{user_id}> done, changed category!'.format(
                                                                           user_id=user_id))
+            plugin.log.info(
+                '#{author_id} edited '
+                'server: #{entry[server_id]} discord.gg/{entry[invite_code]} '
+                'name: {entry[name]} description: {entry[description]} '
+                'category: {entry[category_channel_name]} genre: {entry[genre_category_name]} '
+                'invitee: #{entry[invitee_id]} '
+                'submitted at: {entry[submitted_at]} last checked: {entry[submitted_at]} '
+                'new category_channel_name: {category_channel_name} new genre_category_name: {genre_category_name}'.format(
+                    author_id=user_id,
+                    entry=more_args['entry'].to_dict(), category_channel_name=category_channel.name,
+                    genre_category_name=genre_category_name))
     else:
         sent_message = plugin.client.api.channels_messages_create(plugin.config.approvalQueueChannelID,
                                                                   '<@{user_id}> invalid response'.format(
@@ -210,6 +251,16 @@ class IndexPlugin(Plugin):
 
         add_discord_server_to_queue(self, invite_code, invite.guild.id, name, description, invite.inviter.id,
                                     category_channel.name, genre_category_name)
+        self.log.info(
+            '{author.username} #{author.id} added '
+            'server to queue: {invite.guild.name} #{invite.guild.id} discord.gg/{invite_code} '
+            'name: {name} description: {description} '
+            'category: {category_channel_name} genre: {genre_category_name} '
+            'invitee: {invite.inviter.username} #{invite.inviter.id} '
+            'sudo: {sudo}'.format(
+                author=event.msg.author,
+                invite=invite, invite_code=invite_code, category_channel_name=category_channel.name,
+                genre_category_name=genre_category_name, name=name, description=description, sudo=sudo))
 
         event.msg.reply('Added to queue!')
 
@@ -243,7 +294,19 @@ class IndexPlugin(Plugin):
             event.msg.reply('you can only remove entries your submitted yourself')
             return
 
+        discord_server_found_data = discord_server_found.to_dict()
         remove_discord_server(self, discord_server_found, event.msg.author.id)
+        self.log.info(
+            '{author.username} #{author.id} removed '
+            'server: #{entry[server_id]} discord.gg/{entry[invite_code]} '
+            'name: {entry[name]} description: {entry[description]} '
+            'category: {entry[category_channel_name]} genre: {entry[genre_category_name]} '
+            'invitee: #{entry[invitee_id]} '
+            'submitted at: {entry[submitted_at]} last checked: {entry[submitted_at]} '
+            'index message id: {entry[index_message_id]} '
+            'sudo: {sudo}'.format(
+                author=event.msg.author,
+                entry=discord_server_found_data, sudo=sudo))
 
         event.msg.reply('Removed!')
 
@@ -325,8 +388,22 @@ class IndexPlugin(Plugin):
                 if not sudo:
                     attr['state'] = 4
                     response_text = 'Category changes have to be approved, we will inform you when it\'s done!'
+                    # TODO: update index messages
 
+        before_data = discord_server_found.to_dict()
         update_discord_server(self, discord_server_found, attr)
+        self.log.info(
+            '{author.username} #{author.id} updated '
+            'server: #{entry[server_id]} discord.gg/{entry[invite_code]} '
+            'name: {entry[name]} description: {entry[description]} '
+            'category: {entry[category_channel_name]} genre: {entry[genre_category_name]} '
+            'invitee: #{entry[invitee_id]} '
+            'submitted at: {entry[submitted_at]} last checked: {entry[submitted_at]} '
+            'index message id: {entry[index_message_id]} '
+            'sudo: {sudo} '
+            'new data: {attr}'.format(
+                author=event.msg.author,
+                entry=before_data, sudo=sudo, attr=attr))
 
         event.msg.reply(response_text)
 
@@ -354,6 +431,15 @@ class IndexPlugin(Plugin):
             return
 
         approve_queue_entry(self, entry, event.user_id)
+        self.log.info(
+            '#{author_id} approved '
+            'server: #{entry[server_id]} discord.gg/{entry[invite_code]} '
+            'name: {entry[name]} description: {entry[description]} '
+            'category: {entry[category_channel_name]} genre: {entry[genre_category_name]} '
+            'invitee: #{entry[invitee_id]} '
+            'submitted at: {entry[submitted_at]} last checked: {entry[submitted_at]}'.format(
+                author_id=event.user_id,
+                entry=entry.to_dict()))
 
         try:
             self.client.api.channels_messages_reactions_delete(event.channel_id, event.message_id, event.emoji.name,

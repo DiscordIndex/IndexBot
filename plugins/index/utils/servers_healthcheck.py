@@ -36,8 +36,16 @@ def start_servers_healthcheck(plugin):
             discord_server.state = 3
             send_expiration_message(plugin, discord_server)
             changelog_post_expiration(plugin, discord_server)
+            plugin.log.info(
+                'invite expired '
+                'server: #{entry[server_id]} discord.gg/{entry[invite_code]} '
+                'name: {entry[name]} description: {entry[description]} '
+                'category: {entry[category_channel_name]} genre: {entry[genre_category_name]} '
+                'invitee: #{entry[invitee_id]} '
+                'submitted at: {entry[submitted_at]} last checked: {entry[submitted_at]}'.format(
+                    entry=discord_server.to_dict()))
             # TODO: update index messages
-        orm.commit()
+            orm.commit()
 
 
 def start_servers_healthcheck_loop(plugin):
