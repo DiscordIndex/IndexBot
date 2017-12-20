@@ -186,8 +186,7 @@ class IndexPlugin(Plugin):
             event.msg.reply('expired invite code')
             return
 
-        if orm.select(
-                orm.count(ds) for ds in self.db.DiscordServer if ds.server_id == invite.guild.id).first() > 0:
+        if self.db.DiscordServer.get(server_id=invite.guild.id):
             event.msg.reply('server already in the index or queue')
             return
 
@@ -232,16 +231,16 @@ class IndexPlugin(Plugin):
             event.msg.reply('no invite code found')
             return
 
-        discord_servers_found = orm.select(ds for ds in self.db.DiscordServer if ds.invite_code == invite_code)
-        if discord_servers_found.count() <= 0:
+        discord_server_found = self.db.DiscordServer.get(invite_code=invite_code)
+        if not discord_server_found:
             event.msg.reply('invite not found in queue or index')
             return
 
-        if discord_servers_found.first().invitee_id != event.msg.author.id and sudo == False:
+        if discord_server_found.invitee_id != event.msg.author.id and sudo == False:
             event.msg.reply('you can only remove entries your submitted yourself')
             return
 
-        remove_discord_server(self, discord_servers_found.first(), event.msg.author.id)
+        remove_discord_server(self, discord_server_found, event.msg.author.id)
 
         event.msg.reply('Removed!')
 
@@ -291,8 +290,8 @@ class IndexPlugin(Plugin):
             event.msg.reply('you can only submit invites you generated yourself')
             return
 
-        discord_servers_found = orm.select(ds for ds in self.db.DiscordServer if ds.server_id == invite.guild.id)
-        if discord_servers_found.count() <= 0:
+        discord_server_found = self.db.DiscordServer.get(server_id=invite.guild.id)
+        if not discord_server_found:
             event.msg.reply('server not found in queue or index')
             return
 
@@ -307,7 +306,7 @@ class IndexPlugin(Plugin):
         if category_channel is not None and category_channel.parent is not None:
             genre_category_name = category_channel.parent.name
 
-        if discord_servers_found.first().invitee_id != event.msg.author.id and sudo == False:
+        if discord_server_found.invitee_id != event.msg.author.id and sudo == False:
             event.msg.reply('you can only edit entries your submitted yourself')
             return
 
@@ -317,14 +316,14 @@ class IndexPlugin(Plugin):
             attr['name'] = name
             attr['description'] = description
         if category_channel is not None and len(category_channel.name) > 0:
-            if category_channel.name != discord_servers_found.first().category_channel_name or genre_category_name != discord_servers_found.first().genre_category_name:
+            if category_channel.name != discord_server_found.category_channel_name or genre_category_name != discord_server_found.genre_category_name:
                 attr['category_channel_name'] = category_channel.name
                 attr['genre_category_name'] = genre_category_name
                 if not sudo:
                     attr['state'] = 4
                     response_text = 'Category changes have to be approved, we will inform you when it\'s done!'
 
-        update_discord_server(self, discord_servers_found.first(), attr)
+        update_discord_server(self, discord_server_found, attr)
 
         event.msg.reply(response_text)
 

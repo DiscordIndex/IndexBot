@@ -75,7 +75,8 @@ def get_entry_from_embed(plugin, embed):
 
 @orm.db_session
 def update_approval_queue(plugin):
-    discord_servers_found = orm.select(ds for ds in plugin.db.DiscordServer if ds.state == 1 or ds.state == 4)
+    discord_servers_found = orm.select(ds for ds in plugin.db.DiscordServer if ds.state == 1 or ds.state == 4).order_by(
+        plugin.db.DiscordServer.submitted_at)
 
     bot_queue_message = get_queue_bot_message(plugin)
 
