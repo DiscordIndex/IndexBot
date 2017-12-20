@@ -1,3 +1,4 @@
+import datetime
 import time
 from threading import Thread
 
@@ -125,21 +126,23 @@ class IndexPlugin(Plugin):
 
     @Plugin.command('ping')
     def command_ping(self, event):
-        event.msg.reply('pong')
-
-    @Plugin.command('channels')
-    def command_channels(self, event):
-        self.client.api.channels_typing(event.msg.channel.id)
-        event.msg.reply('Add Channels: <#' + ">, <#".join(str(x) for x in self.config.addChannelIDs) + '>')
+        start = datetime.datetime.now()
+        message = event.msg.reply('pong')
+        end = datetime.datetime.now()
+        message.edit('pong (edit took {time:.0f} ms)'.format(time=(end - start).total_seconds() * 1000))
 
     @Plugin.command('refresh queue')
     def command_refresh_queue(self, event):
+        if not is_mod(self, event.msg.author.id):
+            return
         self.client.api.channels_typing(event.msg.channel.id)
         update_approval_queue(self)
         event.msg.reply('Refreshed queue')
 
     @Plugin.command('healthcheck')
     def command_healthcheck(self, event):
+        if not is_mod(self, event.msg.author.id):
+            return
         self.client.api.channels_typing(event.msg.channel.id)
         start_servers_healthcheck(self)
         event.msg.reply('Completed healthcheck')

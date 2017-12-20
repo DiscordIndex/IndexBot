@@ -33,7 +33,7 @@ def remove_discord_server(plugin, discord_server, author_user_id, reason=""):
     update_approval_queue(plugin)
 
     changelog_post_removal(plugin, entry_data, author_user_id, reason)
-    # TODO: index logic
+    # TODO: update index messages
 
 
 @orm.db_session
@@ -55,4 +55,4 @@ def update_discord_server(plugin, discord_server, attr=None):
     update_approval_queue(plugin)
 
     changelog_post_update(plugin, before_data, after_data)
-    # TODO: index logic
+    # TODO: update index messages
