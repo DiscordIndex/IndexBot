@@ -4,6 +4,7 @@ from disco.types.message import MessageEmbed
 from pony import orm
 
 from plugins.index.utils.changelog import changelog_post_approval, changelog_post_rejection
+from plugins.index.utils.discordindex import update_discord_index, get_channel_for_name_and_category
 from plugins.index.utils.dms import send_approval_message, send_rejection_message
 
 APPROVE_EMOJI = "✅"
@@ -160,8 +161,14 @@ def reject_queue_entry(plugin, entry, moderator_user_id, reason):
 @orm.db_session
 def approve_queue_entry(plugin, entry, user_id):
     plugin.db.DiscordServer[entry.id].state = 2
-    # TODO: update index messages
+
     update_approval_queue(plugin)
 
     send_approval_message(plugin, entry)
     changelog_post_approval(plugin, entry, user_id)
+
+    index_channel = get_channel_for_name_and_category(plugin, entry.category_channel_name,
+                                                      entry.genre_category_name)
+    if index_channel:
+        update_discord_index(plugin,
+                             only_in_channel_id=index_channel.id)

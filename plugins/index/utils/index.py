@@ -3,6 +3,7 @@ import datetime
 from pony import orm
 
 from plugins.index.utils.changelog import changelog_post_removal, changelog_post_update
+from plugins.index.utils.discordindex import update_discord_index, get_channel_for_name_and_category
 from plugins.index.utils.queue import update_approval_queue
 
 
@@ -33,7 +34,11 @@ def remove_discord_server(plugin, discord_server, author_user_id, reason=""):
     update_approval_queue(plugin)
 
     changelog_post_removal(plugin, entry_data, author_user_id, reason)
-    # TODO: update index messages
+
+    index_channel = get_channel_for_name_and_category(plugin, entry_data[
+        'category_channel_name'], entry_data['genre_category_name'])
+    if index_channel:
+        update_discord_index(plugin, only_in_channel_id=index_channel.id)
 
 
 @orm.db_session
@@ -55,4 +60,13 @@ def update_discord_server(plugin, discord_server, attr=None):
     update_approval_queue(plugin)
 
     changelog_post_update(plugin, before_data, after_data)
-    # TODO: update index messages
+
+    before_channel = get_channel_for_name_and_category(plugin, before_data[
+        'category_channel_name'], before_data['genre_category_name'])
+    after_channel = get_channel_for_name_and_category(plugin, after_data[
+        'category_channel_name'], after_data['genre_category_name'])
+
+    if before_channel:
+        update_discord_index(plugin, only_in_channel_id=before_channel.id)
+    if after_channel and after_channel.id != before_channel.id:
+        update_discord_index(plugin, only_in_channel_id=after_channel.id)

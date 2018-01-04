@@ -6,6 +6,7 @@ from disco.api.http import APIException
 from pony import orm
 
 from plugins.index.utils.changelog import changelog_post_expiration
+from plugins.index.utils.discordindex import get_channel_for_name_and_category, update_discord_index
 from plugins.index.utils.dms import send_expiration_message
 from plugins.index.utils.invite import is_valid_invite
 
@@ -44,7 +45,11 @@ def start_servers_healthcheck(plugin):
                 'invitee: #{entry[invitee_id]} '
                 'submitted at: {entry[submitted_at]} last checked: {entry[submitted_at]}'.format(
                     entry=discord_server.to_dict()))
-            # TODO: update index messages
+
+            update_discord_index(plugin, only_in_channel_id=get_channel_for_name_and_category(plugin,
+                                                                                              discord_server.category_channel_name,
+                                                                                              discord_server.genre_category_name).id)
+
             orm.commit()
 
 

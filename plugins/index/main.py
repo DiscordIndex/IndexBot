@@ -8,6 +8,7 @@ from disco.types.channel import Channel as DiscoChannel
 from pony import orm
 
 from db import DbHandler
+from plugins.index.utils.discordindex import update_discord_index, get_channel_for_name_and_category
 from plugins.index.utils.index import add_discord_server_to_queue, remove_discord_server, update_discord_server
 from plugins.index.utils.invite import extract_invite_code, is_valid_invite
 from plugins.index.utils.permissions import is_mod
@@ -180,6 +181,14 @@ class IndexPlugin(Plugin):
         update_approval_queue(self)
         event.msg.reply('Refreshed queue')
 
+    @Plugin.command('refresh index')
+    def command_refresh_index(self, event):
+        if not is_mod(self, event.msg.author.id):
+            return
+        self.client.api.channels_typing(event.msg.channel.id)
+        update_discord_index(self)
+        event.msg.reply('Refreshed index')
+
     @Plugin.command('healthcheck')
     def command_healthcheck(self, event):
         if not is_mod(self, event.msg.author.id):
@@ -248,6 +257,10 @@ class IndexPlugin(Plugin):
         genre_category_name = ""
         if category_channel.parent is not None:
             genre_category_name = category_channel.parent.name
+
+        if not get_channel_for_name_and_category(self, category_channel.name, genre_category_name):
+            event.msg.reply('invalid category channel')
+            return
 
         add_discord_server_to_queue(self, invite_code, invite.guild.id, name, description, invite.inviter.id,
                                     category_channel.name, genre_category_name)
@@ -372,6 +385,10 @@ class IndexPlugin(Plugin):
         if category_channel is not None and category_channel.parent is not None:
             genre_category_name = category_channel.parent.name
 
+        if not get_channel_for_name_and_category(self, category_channel.name, genre_category_name):
+            event.msg.reply('invalid category channel')
+            return
+
         if discord_server_found.invitee_id != event.msg.author.id and sudo == False:
             event.msg.reply('you can only edit entries your submitted yourself')
             return
@@ -388,7 +405,6 @@ class IndexPlugin(Plugin):
                 if not sudo:
                     attr['state'] = 4
                     response_text = 'Category changes have to be approved, we will inform you when it\'s done!'
-                    # TODO: update index messages
 
         before_data = discord_server_found.to_dict()
         update_discord_server(self, discord_server_found, attr)

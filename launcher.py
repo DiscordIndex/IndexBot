@@ -4,6 +4,7 @@ import logging
 import os
 import signal
 import subprocess
+import sys
 
 import gevent
 
@@ -26,7 +27,7 @@ class BotSupervisor(object):
     def start(self):
         env = copy.deepcopy(os.environ)
         env.update(self.env)
-        self.proc = subprocess.Popen(['python3.6', '-m', 'disco.cli', '--config', 'config.yaml'], env=env)
+        self.proc = subprocess.Popen([sys.executable, '-m', 'disco.cli', '--config', 'config.yaml'], env=env)
 
     def stop(self):
         self.proc.terminate()
