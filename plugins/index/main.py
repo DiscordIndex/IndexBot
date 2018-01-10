@@ -10,7 +10,8 @@ from pony import orm
 from db import DbHandler
 from plugins.index.utils.discordindex import update_discord_index, get_channel_for_name_and_category
 from plugins.index.utils.discordindex_refresh import start_discordindex_refresh_loop
-from plugins.index.utils.index import add_discord_server_to_queue, remove_discord_server, update_discord_server
+from plugins.index.utils.index import remove_discord_server, update_discord_server, \
+    add_discord_server
 from plugins.index.utils.invite import extract_invite_code, is_valid_invite
 from plugins.index.utils.permissions import is_mod
 from plugins.index.utils.query_response_manager import QueryResponseManager
@@ -276,20 +277,35 @@ class IndexPlugin(Plugin):
             event.msg.reply('invalid category channel')
             return
 
-        add_discord_server_to_queue(self, invite_code, invite.guild.id, name, description, invite.inviter.id,
-                                    category_channel.name, genre_category_name)
-        self.log.info(
-            '{author.username} #{author.id} added '
-            'server to queue: {invite.guild.name} #{invite.guild.id} discord.gg/{invite_code} '
-            'name: {name} description: {description} '
-            'category: {category_channel_name} genre: {genre_category_name} '
-            'invitee: {invite.inviter.username} #{invite.inviter.id} '
-            'sudo: {sudo}'.format(
-                author=event.msg.author,
-                invite=invite, invite_code=invite_code, category_channel_name=category_channel.name,
-                genre_category_name=genre_category_name, name=name, description=description, sudo=sudo))
+        add_discord_server(self, invite_code, invite.guild.id, name, description, invite.inviter.id,
+                           category_channel.name, genre_category_name, event.msg.author.id, sudo=sudo)
 
-        event.msg.reply('Added to queue!')
+        if sudo:
+            self.log.info(
+                '{author.username} #{author.id} added '
+                'server: {invite.guild.name} #{invite.guild.id} discord.gg/{invite_code} '
+                'name: {name} description: {description} '
+                'category: {category_channel_name} genre: {genre_category_name} '
+                'invitee: {invite.inviter.username} #{invite.inviter.id} '
+                'sudo: {sudo}'.format(
+                    author=event.msg.author,
+                    invite=invite, invite_code=invite_code, category_channel_name=category_channel.name,
+                    genre_category_name=genre_category_name, name=name, description=description, sudo=sudo))
+
+            event.msg.reply('Added server!')
+        else:
+            self.log.info(
+                '{author.username} #{author.id} added '
+                'server to queue: {invite.guild.name} #{invite.guild.id} discord.gg/{invite_code} '
+                'name: {name} description: {description} '
+                'category: {category_channel_name} genre: {genre_category_name} '
+                'invitee: {invite.inviter.username} #{invite.inviter.id} '
+                'sudo: {sudo}'.format(
+                    author=event.msg.author,
+                    invite=invite, invite_code=invite_code, category_channel_name=category_channel.name,
+                    genre_category_name=genre_category_name, name=name, description=description, sudo=sudo))
+
+            event.msg.reply('Added to queue!')
 
     @orm.db_session
     @Plugin.command('remove',
