@@ -175,6 +175,9 @@ class IndexPlugin(Plugin):
 
     @Plugin.command('refresh queue')
     def command_refresh_queue(self, event):
+        if event.msg.channel.guild_id != self.config.indexGuildID:
+            return
+
         if not is_mod(self, event.msg.author.id):
             return
         self.client.api.channels_typing(event.msg.channel.id)
@@ -183,6 +186,9 @@ class IndexPlugin(Plugin):
 
     @Plugin.command('refresh index')
     def command_refresh_index(self, event):
+        if event.msg.channel.guild_id != self.config.indexGuildID:
+            return
+
         if not is_mod(self, event.msg.author.id):
             return
         self.client.api.channels_typing(event.msg.channel.id)
@@ -191,6 +197,9 @@ class IndexPlugin(Plugin):
 
     @Plugin.command('healthcheck')
     def command_healthcheck(self, event):
+        if event.msg.channel.guild_id != self.config.indexGuildID:
+            return
+
         if not is_mod(self, event.msg.author.id):
             return
         self.client.api.channels_typing(event.msg.channel.id)
@@ -202,6 +211,9 @@ class IndexPlugin(Plugin):
                     '<invite:str> <category_channel:channel|snowflake> <name_and_description:str...>',
                     aliases=['submit', 'sudo-add'])
     def command_add(self, event, invite, category_channel, name_and_description):
+        if event.msg.channel.guild_id != self.config.indexGuildID:
+            return
+
         if event.msg.channel.id not in self.config.addChannelIDs:
             return
 
@@ -282,6 +294,9 @@ class IndexPlugin(Plugin):
                     '<invite:str>',
                     aliases=['delete', 'withdraw', 'sudo-remove'])
     def command_remove(self, event, invite):
+        if event.msg.channel.guild_id != self.config.indexGuildID:
+            return
+
         if event.msg.channel.id not in self.config.addChannelIDs:
             return
 
@@ -328,6 +343,9 @@ class IndexPlugin(Plugin):
                     '<invite:str> [category_channel:channel|snowflake] [name_and_description:str...]',
                     aliases=['sudo-update'])
     def command_update(self, event, invite, category_channel=None, name_and_description=""):
+        if event.msg.channel.guild_id != self.config.indexGuildID:
+            return
+
         if event.msg.channel.id not in self.config.addChannelIDs:
             return
 
@@ -425,6 +443,9 @@ class IndexPlugin(Plugin):
 
     @Plugin.listen('MessageReactionAdd', conditional=is_queue_approve_reaction)
     def on_queue_approval_reaction(self, event):
+        if event.channel.guild_id != self.config.indexGuildID:
+            return
+
         if event.channel_id != self.config.approvalQueueChannelID:
             return
 
@@ -465,6 +486,9 @@ class IndexPlugin(Plugin):
 
     @Plugin.listen('MessageReactionAdd', conditional=is_queue_reject_reaction)
     def on_queue_reject_reaction(self, event):
+        if event.channel.guild_id != self.config.indexGuildID:
+            return
+
         if event.channel_id != self.config.approvalQueueChannelID:
             return
 
@@ -503,6 +527,9 @@ class IndexPlugin(Plugin):
 
     @Plugin.listen('MessageReactionAdd', conditional=is_queue_edit_reaction)
     def on_queue_edit_reaction(self, event):
+        if event.channel.guild_id != self.config.indexGuildID:
+            return
+
         if event.channel_id != self.config.approvalQueueChannelID:
             return
 
@@ -547,6 +574,9 @@ class IndexPlugin(Plugin):
 
     @Plugin.listen('MessageCreate')
     def on_message_create(self, event):
+        if event.message.channel.guild_id != self.config.indexGuildID:
+            return
+
         if event.message.channel.id != self.config.approvalQueueChannelID:
             return
 

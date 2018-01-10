@@ -17,5 +17,6 @@ def define_discordserver(db):
         submitted_at = orm.Required(datetime.datetime)
         category_channel_name = orm.Required(str)
         genre_category_name = orm.Optional(str)
-        index_message_id = orm.Optional(int, size=64)
         last_checked = orm.Required(datetime.datetime)
+        # deprecated
+        index_message_id = orm.Optional(int, size=64)
