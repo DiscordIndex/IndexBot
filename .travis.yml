@@ -8,7 +8,8 @@ install:
   - npm install npm -g
   - npm install -g snyk
   - snyk test
-#script:
-#  #- pytest
+script:
+  - echo 0
+  #- pytest
 after_success:
   - snyk monitor
