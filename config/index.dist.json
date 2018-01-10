@@ -3,5 +3,6 @@
   "addChannelIDs": [],
   "approvalQueueChannelID": 0,
   "modUserIDs": [],
-  "changelogChannelIDs": []
+  "changelogChannelIDs": [],
+  "emojiChannelIDs": []
 }

@@ -7,3 +7,4 @@ class IndexPluginConfig(Config):
     approvalQueueChannelID = 0
     modUserIDs = []
     changelogChannelIDs = []
+    emojiChannelIDs = []

@@ -84,17 +84,19 @@ def update_discord_index(plugin, only_in_channel_id=None):
             if current_message:
                 # update
                 if current_message.content != get_discord_server_message(
-                        index_target_channel_discord_server):
+                        plugin, index_target_channel_discord_server, index_target_channel.id):
                     # edit message
                     plugin.client.api.channels_messages_modify(index_target_channel.id,
                                                                current_message.id,
                                                                get_discord_server_message(
-                                                                   index_target_channel_discord_server))
+                                                                   plugin, index_target_channel_discord_server,
+                                                                   index_target_channel.id))
             else:
                 # create
                 plugin.client.api.channels_messages_create(index_target_channel.id,
                                                            get_discord_server_message(
-                                                               index_target_channel_discord_server))
+                                                               plugin, index_target_channel_discord_server,
+                                                               index_target_channel.id))
 
         for leftover_message in index_target_channel_messages_iter:
             if leftover_message.author.id != plugin.state.me.id:
@@ -144,7 +146,18 @@ def discord_server_sort_key(discord_server):
     return name
 
 
-def get_discord_server_message(discord_server):
-    return '**{discord_server.name}** https://discord.gg/{discord_server.invite_code}\n' \
-           '{discord_server.description}'.format(
+def get_discord_server_message(plugin, discord_server, target_channel_id):
+    result = '**{discord_server.name}** https://discord.gg/{discord_server.invite_code}\n' \
+             '{discord_server.description}'.format(
         discord_server=discord_server).strip()  # + ' (' + discord_server_sort_key(discord_server) + ')'
+    if target_channel_id in plugin.config.emojiChannelIDs:
+        target_guild = plugin.client.state.guilds.get(discord_server.server_id)
+        if target_guild:
+            if target_guild.emojis and len(target_guild.emojis) > 0:
+                result += '\n'
+                for emoji in target_guild.emojis.values():
+                    result += emoji.__str__()
+                result += ' ({emoji_count})'.format(emoji_count=len(target_guild.emojis))
+        else:
+            result += '\nIf this is your server please invite the Index Bot to see the server emoji listed here.'
+    return result
