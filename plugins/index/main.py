@@ -9,6 +9,7 @@ from pony import orm
 
 from db import DbHandler
 from plugins.index.utils.discordindex import update_discord_index, get_channel_for_name_and_category
+from plugins.index.utils.discordindex_refresh import start_discordindex_refresh_loop
 from plugins.index.utils.index import add_discord_server_to_queue, remove_discord_server, update_discord_server
 from plugins.index.utils.invite import extract_invite_code, is_valid_invite
 from plugins.index.utils.permissions import is_mod
@@ -161,6 +162,7 @@ class IndexPlugin(Plugin):
         self.denyReasonQueryResponseManager = QueryResponseManager(deny_reason_callback)
         self.queueEditQueryResponseManager = QueryResponseManager(query_edit_callback)
         start_servers_healthcheck_loop(self)
+        start_discordindex_refresh_loop(self)
         self.cached_queue_message = None
 
     def load(self, ctx):
