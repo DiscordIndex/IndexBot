@@ -5,12 +5,12 @@ python:
   - "nightly"
 install:
   - pip install -r requirements.txt
-  - pip install -U pytest
+  #- pip install -U pytest
   # update npm
   - npm install npm -g
   - npm install -g snyk
   - snyk test
 script:
-  - pytest
+  #- pytest
 after_success:
   - snyk monitor
