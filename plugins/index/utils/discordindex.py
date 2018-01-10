@@ -1,4 +1,5 @@
 from disco.api.http import APIException
+from disco.api.http import Routes
 from pony import orm
 
 
@@ -60,6 +61,10 @@ def update_discord_index(plugin, only_in_channel_id=None):
         #    index_target_channel.parent_id).name + " / #" + index_target_channel.name)
         index_target_discord_servers.sort(
             key=lambda discord_server: discord_server_sort_key(discord_server))
+
+        if index_target_channel.id in plugin.config.rankedByMemberChannelIDs:
+            index_target_discord_servers.sort(
+                key=lambda discord_server: discord_server_sort_bymember_key(plugin, discord_server), reverse=True)
 
         index_target_channel_messages = plugin.client.api.channels_messages_list(
             index_target_channel.id,
@@ -146,10 +151,31 @@ def discord_server_sort_key(discord_server):
     return name
 
 
+def discord_server_sort_bymember_key(plugin, discord_server):
+    target_guild = plugin.state.guilds.get(discord_server.server_id)
+    if target_guild:
+        return target_guild.member_count
+
+    try:
+        route = list(Routes.INVITES_GET)
+        route[1] += '?with_counts=true'
+        result = plugin.client.api.http(tuple(route),
+                                        dict(invite=discord_server.invite_code))
+    except APIException:
+        return 1
+
+    try:
+        return int(result.json()['approximate_member_count'])
+    except TypeError:
+        return 1
+
+
 def get_discord_server_message(plugin, discord_server, target_channel_id):
     result = '**{discord_server.name}** https://discord.gg/{discord_server.invite_code}\n' \
              '{discord_server.description}'.format(
-        discord_server=discord_server).strip()  # + ' (' + discord_server_sort_key(discord_server) + ')'
+        discord_server=discord_server).strip()
+    # result += ' (sort key: ' + str(discord_server_sort_key(discord_server)) + ')'
+    # result += ' (by member sort key: ' + str(discord_server_sort_bymember_key(plugin, discord_server)) + ')'
     if target_channel_id in plugin.config.emojiChannelIDs:
         target_guild = plugin.client.state.guilds.get(discord_server.server_id)
         if target_guild:

@@ -60,6 +60,6 @@ def start_servers_healthcheck_loop(plugin):
 
 def servers_healthcheck_loop(plugin):
     while True:
-        time.sleep(60 * 60)
+        time.sleep(60 * 60 * 12)
         plugin.log.info("starting healthcheck…")
         start_servers_healthcheck(plugin)

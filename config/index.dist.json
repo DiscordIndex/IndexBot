@@ -4,5 +4,6 @@
   "approvalQueueChannelID": 0,
   "modUserIDs": [],
   "changelogChannelIDs": [],
-  "emojiChannelIDs": []
+  "emojiChannelIDs": [],
+  "rankedByMemberChannelIDs": []
 }

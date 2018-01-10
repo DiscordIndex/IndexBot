@@ -10,6 +10,8 @@ from plugins.index.utils.discordindex import update_discord_index
 def start_discordindex_refresh(plugin):
     for channel_id in plugin.config.emojiChannelIDs:
         update_discord_index(plugin, only_in_channel_id=channel_id)
+    for channel_id in plugin.config.rankedByMemberChannelIDs:
+        update_discord_index(plugin, only_in_channel_id=channel_id)
 
 
 def start_discordindex_refresh_loop(plugin):
@@ -19,6 +21,6 @@ def start_discordindex_refresh_loop(plugin):
 
 def discordindex_refresh_loop(plugin):
     while True:
-        time.sleep(60 * 60)
+        time.sleep(60 * 60 * 4)
         plugin.log.info("starting discord index refresh…")
         start_discordindex_refresh(plugin)

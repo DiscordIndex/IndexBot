@@ -8,3 +8,4 @@ class IndexPluginConfig(Config):
     modUserIDs = []
     changelogChannelIDs = []
     emojiChannelIDs = []
+    rankedByMemberChannelIDs = []
